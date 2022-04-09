@@ -1,8 +1,4 @@
-﻿/*!***Slide down the wireless controller’s throttle / brake to the lowest possible position, and
-hold it there. At the same time, press and release the start button while the throttle/brake
-is still held down. After 7 seconds, the controller will show 8 green flashes, followed by
-blue flashes. At this point release the throttle / brake. The board should now beep again,
-indicating a successful synchronization.*************************************************************************
+﻿/******************************************************************************
  * @file		systemTSK.c
  * @author		Storozhenko Roman - D_EL
  * @version		V1.0
