@@ -140,7 +140,7 @@ void systemTSK(void *pPrm){
 								char s[16];
 								snprintf(s, sizeof(s), "%02i:%02i:%02i", tm.tm_hour, tm.tm_min, tm.tm_sec);
 								display.putstring(0, 0, s);
-								snprintf(s, sizeof(s), "%02i:%02i:%02i", tm.tm_mon, tm.tm_mday, tm.tm_year);
+								snprintf(s, sizeof(s), "%02i:%02i:%02i", tm.tm_mday, tm.tm_mon, tm.tm_year);
 								display.putstring(0, 1, s);
 							}else{
 								display.putstring(0, 0, "--:--:--");
@@ -155,7 +155,11 @@ void systemTSK(void *pPrm){
 		}
 
 		char s[16];
-		snprintf(s, sizeof(s), "%+" PRIi16 ".%" PRIu16 "\x7D", temperature.temperature / 10, abs(temperature.temperature) % 10);
+		if(temperature.state == temp_Ok){
+			snprintf(s, sizeof(s), "%+" PRIi16 ".%" PRIu16 "\x7D", temperature.temperature / 10, abs(temperature.temperature) % 10);
+		}else{
+			snprintf(s, sizeof(s), "---\x7D");
+		}
 		display.putstring(10, 0, s);
 
 		display.flush();
