@@ -27,9 +27,7 @@ extern "C" {
 * User typedef
 */
 enum{
-	CH_UINADC,
-	CH_ILED1,
-	CH_ILED2,
+	CH_LIGHT_SENSOR,
 	CH_TEMPERATURE,
 	CH_VREF,
 	CH_NUMBER

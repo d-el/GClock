@@ -21,7 +21,7 @@
 #define configCPU_CLOCK_HZ                      ( 64000000 )
 #define configTICK_RATE_HZ                      ( 1000 )
 #define configMAX_PRIORITIES                    ( 4 )
-#define configMINIMAL_STACK_SIZE                ( 128 )
+#define configMINIMAL_STACK_SIZE                ( 64 )
 #define configMAX_TASK_NAME_LEN                 ( 8 )
 #define configUSE_16_BIT_TICKS                  ( 0 )
 #define configIDLE_SHOULD_YIELD                 ( 1 )
@@ -105,10 +105,10 @@ See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 #define INCLUDE_xTaskResumeFromISR              ( 0 )
 
 /*-------NAME--------------------size [4 byte Word] */
-#define SYSTEM_TSK_SZ_STACK     512
-#define ADC_TSK_SZ_STACK        128
-#define DS18B_TSK_SZ_STACK      128
-/*-------NAME--------------------size [4 byte Word] */
+#define SYSTEM_TSK_SZ_STACK     420
+#define ADC_TSK_SZ_STACK        160
+#define DS18B_TSK_SZ_STACK      140
+/*-------NAME--------------------*/
 #define SYSTEM_TSK_PRIO         2
 #define ADC_TSK_PRIO            3
 #define DS18B_TSK_PRIO          1

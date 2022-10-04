@@ -24,36 +24,10 @@
 #include <algorithm>
 #include "ds18TSK.h"
 #include <datecs.h>
-
-// MCU calibration data
-#define CAL_VREF_DATA	(*(uint16_t*)0x1FFF75AA)	// ADC value VREF_INT at 3.0V VREF
-#define CAL_TS_DATA		(*(uint16_t*)0x1FFF75A8)	// ADC value Temperature sensot at 30 °C 3.0V VREF
-#define TS_LINEARITY	2.5							// mv / °C
-
-static SemaphoreHandle_t connUartTxSem;
-static SemaphoreHandle_t connUartRxSem;
+#include "timegm.h"
 
 #define PIECE_BUF_RX		UART2_RxBffSz
 #define connectUart			uart2
-
-/*!****************************************************************************
- * @brief	uart RX TX callback
- */
-static void uartRxHook(uart_type *puart){
-	(void)puart;
-	BaseType_t xHigherPriorityTaskWoken;
-	xHigherPriorityTaskWoken = pdFALSE;
-	xSemaphoreGiveFromISR(connUartRxSem, &xHigherPriorityTaskWoken);
-	portEND_SWITCHING_ISR(xHigherPriorityTaskWoken);
-}
-
-static void uartTxHook(uart_type *puart){
-	(void)puart;
-	BaseType_t xHigherPriorityTaskWoken;
-	xHigherPriorityTaskWoken = pdFALSE;
-	xSemaphoreGiveFromISR(connUartTxSem, &xHigherPriorityTaskWoken);
-	portEND_SWITCHING_ISR(xHigherPriorityTaskWoken);
-}
 
 /*!****************************************************************************
  * @brief
@@ -61,6 +35,8 @@ static void uartTxHook(uart_type *puart){
 void systemTSK(void *pPrm){
 	(void)pPrm;
 
+	static SemaphoreHandle_t connUartTxSem;
+	static SemaphoreHandle_t connUartRxSem;
 	vSemaphoreCreateBinary(connUartTxSem);
 	xSemaphoreTake(connUartTxSem, portMAX_DELAY);
 	assert(connUartTxSem != NULL);
@@ -68,8 +44,33 @@ void systemTSK(void *pPrm){
 	xSemaphoreTake(connUartRxSem, portMAX_DELAY);
 	assert(connUartRxSem != NULL);
 
-	//assert(pdTRUE == xTaskCreate(adcTSK, "adcTSK", ADC_TSK_SZ_STACK, NULL, ADC_TSK_PRIO, NULL));
+	assert(pdTRUE == xTaskCreate(adcTSK, "adcTSK", ADC_TSK_SZ_STACK, NULL, ADC_TSK_PRIO, NULL));
 	assert(pdTRUE == xTaskCreate(ds18TSK, "ds18TSK", DS18B_TSK_SZ_STACK, NULL, DS18B_TSK_PRIO, NULL));
+
+	{	// Set timezone and DST
+		char str[64];
+		snprintf(str, sizeof(str), "TZ=CEST-2CET-3,M3.5.0/03:00:00,M10.5.0/04:00:00"); // TODO how this configure?
+		//											| month 3, last Sunday, at 3:00am
+		//															| month 10, last Sunday at 4:00AM
+		putenv(str);
+		tzset();
+	}
+
+	// uart RX TX callback
+	auto uartRxHook = [](uart_type *puart){
+		(void)puart;
+		BaseType_t xHigherPriorityTaskWoken;
+		xHigherPriorityTaskWoken = pdFALSE;
+		xSemaphoreGiveFromISR(connUartRxSem, &xHigherPriorityTaskWoken);
+		portEND_SWITCHING_ISR(xHigherPriorityTaskWoken);
+	};
+	auto uartTxHook = [](uart_type *puart){
+		(void)puart;
+		BaseType_t xHigherPriorityTaskWoken;
+		xHigherPriorityTaskWoken = pdFALSE;
+		xSemaphoreGiveFromISR(connUartTxSem, &xHigherPriorityTaskWoken);
+		portEND_SWITCHING_ISR(xHigherPriorityTaskWoken);
+	};
 
 	uart_init(connectUart, 9600);
 	uart_setCallback(connectUart, uartTxHook, uartRxHook);
@@ -126,21 +127,22 @@ void systemTSK(void *pPrm){
 						struct minmea_sentence_rmc frame;
 						if(minmea_parse_rmc(&frame, line)){
 							struct tm gpstm = {};
-							gpstm.tm_year = frame.date.year;
+							gpstm.tm_year = frame.date.year + 100;
 							gpstm.tm_mon = frame.date.month - 1;
 							gpstm.tm_mday = frame.date.day;
 							gpstm.tm_hour = frame.time.hours;
 							gpstm.tm_min = frame.time.minutes;
 							gpstm.tm_sec = frame.time.seconds;
-							time_t gpstime = mktime(&gpstm) + 60 * 60 * 3; /* TODO */
+							gpstm.tm_isdst = 0;
+							time_t gpsUnixTime = timegm(&gpstm);
 
 							struct tm tm;
-							localtime_r(&gpstime, &tm);
-							if(gpstm.tm_year > 0){
+							localtime_r(&gpsUnixTime, &tm);
+							if(tm.tm_year > 0){
 								char s[16];
-								snprintf(s, sizeof(s), "%02i:%02i:%02i", tm.tm_hour, tm.tm_min, tm.tm_sec);
+								strftime(s, sizeof(s), "%H:%M:%S", &tm);
 								display.putstring(0, 0, s);
-								snprintf(s, sizeof(s), "%02i:%02i:%02i", tm.tm_mday, tm.tm_mon, tm.tm_year);
+								strftime(s, sizeof(s), "%d.%m.%y", &tm);
 								display.putstring(0, 1, s);
 							}else{
 								display.putstring(0, 0, "--:--:--");
@@ -161,6 +163,19 @@ void systemTSK(void *pPrm){
 			snprintf(s, sizeof(s), "---\x7D");
 		}
 		display.putstring(10, 0, s);
+
+		// Set display brightness
+		uint8_t displayBrightness = 4;
+		if(adcTaskStct.filtered.lightSensorValue < 100){
+			displayBrightness = 4;
+		}else if(adcTaskStct.filtered.lightSensorValue < 300){
+			displayBrightness = 3;
+		}else if(adcTaskStct.filtered.lightSensorValue < 2000){
+			displayBrightness = 2;
+		}else{
+			displayBrightness = 1;
+		}
+		display.brightness(displayBrightness);
 
 		display.flush();
 	}

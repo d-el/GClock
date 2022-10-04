@@ -35,7 +35,7 @@ void Datecs::init(){
 }
 
 void Datecs::brightness(uint8_t level){
-	const uint8_t bff[] = { 0x1F, 0x85, level };
+	const uint8_t bff[] = { 0x1F, 0x58, level };
 	interface(bff, sizeof(bff));
 }
 

@@ -34,10 +34,6 @@ void adc_init(void){
 	 */
 	//Analog Input
 	gppin_init(GPIOA, 4, analogMode, pullDisable, 0, 0);
-	//Analog Input
-	gppin_init(GPIOA, 5, analogMode, pullDisable, 0,  0);
-	//Analog Input
-	gppin_init(GPIOA, 7, analogMode, pullDisable, 0, 0);
 
 	for(int i = 0; i < 360000; i++) __NOP();
 
@@ -63,8 +59,6 @@ void adc_init(void){
 
 	// Select channel
 	ADC1->CHSELR |= ADC_CHSELR_CHSEL4 |
-					ADC_CHSELR_CHSEL5 |
-					ADC_CHSELR_CHSEL7 |
 					ADC_CHSELR_CHSEL12| // Temperature
 					ADC_CHSELR_CHSEL13; // Vref
 	while((ADC1->ISR & ADC_ISR_CCRDY) == 0);
@@ -72,8 +66,6 @@ void adc_init(void){
 
 	// Set sample time
 	ADC1->SMPR =	1 << ADC_SMPR_SMPSEL4_Pos |
-					1 << ADC_SMPR_SMPSEL5_Pos |
-					1 << ADC_SMPR_SMPSEL7_Pos |
 					1 << ADC_SMPR_SMPSEL12_Pos |
 					1 << ADC_SMPR_SMPSEL13_Pos |
 					3 << ADC_SMPR_SMP1_Pos |	// 12.5 ADC clock cycles

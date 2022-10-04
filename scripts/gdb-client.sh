@@ -18,7 +18,7 @@ cd $DIR
 
 GDBINITFILE=gdbinit
 GDB=arm-none-eabi-gdb
-ELF=../build/LAMPONE.elf
+ELF=../build/GClock.elf
 
 progname=$(basename $0)
 OPTS=$(getopt -o "hg:" --long "help,gdbinitfile:" -n "$progname" -- "$@")
