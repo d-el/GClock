@@ -29,6 +29,7 @@ add_compile_options(
 	)
 
 add_link_options(
+	-Wl,--flto
 	-Wl,--gc-sections
 	-Wl,--print-memory-usage
 	-Wl,--undefined=uxTopUsedPriority

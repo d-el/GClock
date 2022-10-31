@@ -29,6 +29,17 @@ void Datecs::init(){
 	};
 	interface(setchar7D, sizeof(setchar7D));
 
+	// Define user-defined characters CO2
+	const uint8_t setchar7E[] = {
+		0x1B, 0x26, 0x7E,
+		0b11000100,
+		0b00110000,
+		0b00111100,
+		0b11101011,
+		0b01100000
+	};
+	interface(setchar7E, sizeof(setchar7E));
+
 	// Select user defined character
 	const uint8_t setuserchar[] = { 0x1B, 0x25, 0x01 };
 	interface(setuserchar, sizeof(setuserchar));

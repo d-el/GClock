@@ -25,8 +25,8 @@ extern "C" {
 
 //UART1
 #define		UART1_USE					(1)
-#define		UART1_TxBffSz				(256)
-#define		UART1_RxBffSz				(256)
+#define		UART1_TxBffSz				(128)
+#define		UART1_RxBffSz				(128)
 #define		UART1_RxDmaInterruptPrior	(15)
 #define		UART1_TXIRQPrior			(15)
 #define		UART1_PINAFTX				(0)

@@ -125,7 +125,7 @@ void systemTSK(void *pPrm){
 
 					case MINMEA_SENTENCE_RMC: {
 						struct minmea_sentence_rmc frame;
-						if(minmea_parse_rmc(&frame, line)){
+						if(minmea_parse_rmc(&frame, line) && frame.valid){
 							struct tm gpstm = {};
 							gpstm.tm_year = frame.date.year + 100;
 							gpstm.tm_mon = frame.date.month - 1;
@@ -138,16 +138,14 @@ void systemTSK(void *pPrm){
 
 							struct tm tm;
 							localtime_r(&gpsUnixTime, &tm);
-							if(tm.tm_year > 0){
-								char s[16];
-								strftime(s, sizeof(s), "%H:%M:%S", &tm);
-								display.putstring(0, 0, s);
-								strftime(s, sizeof(s), "%d.%m.%y", &tm);
-								display.putstring(0, 1, s);
-							}else{
-								display.putstring(0, 0, "--:--:--");
-								display.putstring(0, 1, "--.--.--");
-							}
+							char s[32];
+							snprintf(s, sizeof(s), "%02i:%02i:%02i", tm.tm_hour, tm.tm_min, tm.tm_sec);
+							display.putstring(0, 0, s);
+							snprintf(s, sizeof(s), "%02i:%02i:%02i", tm.tm_mday, tm.tm_mon + 1, tm.tm_year - 100);
+							display.putstring(0, 1, s);
+						}else{
+							display.putstring(0, 0, "--:--:--");
+							display.putstring(0, 1, "--.--.--");
 						}
 					} break;
 					default: ;
@@ -156,6 +154,7 @@ void systemTSK(void *pPrm){
 			}
 		}
 
+		// Show outer temperature
 		char s[16];
 		if(temperature.state == temp_Ok){
 			snprintf(s, sizeof(s), "%+" PRIi16 ".%" PRIu16 "\x7D", temperature.temperature / 10, abs(temperature.temperature) % 10);
@@ -163,6 +162,9 @@ void systemTSK(void *pPrm){
 			snprintf(s, sizeof(s), "---\x7D");
 		}
 		display.putstring(10, 0, s);
+
+		snprintf(s, sizeof(s), "\x7E" "%03u", adcTaskStct.filtered.lightSensorValue);
+		display.putstring(10, 1, s);
 
 		// Set display brightness
 		uint8_t displayBrightness = 4;
