@@ -134,6 +134,12 @@ void systemTSK(void *pPrm){
 						struct minmea_sentence_gga frame;
 						if(minmea_parse_gga(&frame, line)){
 							Prm::satellites.val = frame.satellites_tracked;
+							const int32_t newscale = 100000;
+							int32_t nmealat = minmea_rescale(&frame.latitude, newscale);
+							Prm::glatitude.val = (nmealat / (newscale * 100)) * newscale + (nmealat % (newscale * 100)) / 60;
+							int32_t nmealon = minmea_rescale(&frame.longitude, newscale);
+							Prm::glongitude.val = (nmealon / (newscale * 100)) * newscale + (nmealon % (newscale * 100)) / 60;
+							Prm::ghdop.val = minmea_rescale(&frame.hdop, 100);
 						}
 					} break;
 

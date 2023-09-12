@@ -36,6 +36,7 @@ int16_t central();
 int16_t minmaxOuter();
 int16_t minmaxHome();
 int16_t co2();
+int16_t gps();
 
 /*!****************************************************************************
  * @brief
@@ -68,12 +69,14 @@ void baseTSK(void* pPrm){
 				win += central(); break;
 			case 1:
 				win += co2(); break;
+			case 2:
+				win += gps(); break;
 		}
 		if(win < -2){
 			win = -2;
 		}
-		if(win > 1){
-			win = 1;
+		if(win > 2){
+			win = 2;
 		}
 	}
 }
@@ -248,6 +251,38 @@ int16_t co2(){
 		int16_t tick = enco_read();
 		if(tick){
 			display::get().turnAnnunciator(false, 11);
+			return tick;
+		}
+
+		display::get().flush();
+		display::get().clear();
+		vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(guiPeriod_ms));
+	}
+}
+
+int16_t gps(){
+	display::get().clear();
+	display::get().turnAnnunciator(true, 12);
+	TickType_t xLastWakeTime = xTaskGetTickCount();
+	while(1){
+		char s[32];
+		char sval[16];
+		Prm::glatitude.tostring(sval, sizeof(sval));
+		snprintf(s, sizeof(s), "L%s\x7D", sval);
+		Datecs::get().putstring(0, 0, s);
+		Prm::glongitude.tostring(sval, sizeof(sval));
+		snprintf(s, sizeof(s), "F%s\x7D", sval);
+		Datecs::get().putstring(0, 1, s);
+
+		Prm::ghdop.tostring(sval, sizeof(sval));
+		snprintf(s, sizeof(s), "hdop");
+		Datecs::get().putstring(13, 0, s);
+		snprintf(s, sizeof(s), "%s%s", sval, Prm::ghdop.getunit());
+		Datecs::get().putstring(13, 1, s);
+
+		int16_t tick = enco_read();
+		if(tick){
+			display::get().turnAnnunciator(false, 12);
 			return tick;
 		}
 
