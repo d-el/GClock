@@ -1,6 +1,7 @@
 add_library(dev STATIC
 	src/datecs.cpp
 	src/ds18b20.c
+	src/mh-z19.cpp
 	src/oneWireUart.c
 	)
 

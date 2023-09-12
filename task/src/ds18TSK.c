@@ -11,6 +11,7 @@
 * Include
 */
 #include <string.h>
+#include <stdbool.h>
 #include <FreeRTOS.h>
 #include <task.h>
 #include <semphr.h>
@@ -23,7 +24,7 @@
 /*!****************************************************************************
 * MEMORY
 */
-temperature_type temperature;
+ds18b20data_type ds18b20data[DS18_MAX_SENSORS];
 
 /*!****************************************************************************
 * @brief
@@ -34,79 +35,67 @@ void ds18TSK(void *pPrm){
 	(void)pPrm;
 	uint8_t errorcnt = 0;
 
-	ow_init();
-	temperature.state = temp_Ok;
+	for(uint8_t i = 0; i < DS18_MAX_SENSORS; i++){
+		ds18b20data[i].state = temp_noInit;
+	}
 
-	/*****************************
-	* DS18B20 INIT
-	*/
-	while(1){
-		ds18b20state_type resInit = ds18b20Init();
-		if(resInit == ds18b20st_ok){
-			temperature.state = temp_Ok;
-			break;
+	ow_init();
+	vTaskDelay(30);	// For stabilize line voltage and boot device
+
+	ow_searchRomContext_t searchRomContext = {};
+	for(uint8_t i = 0; i < DS18_MAX_SENSORS; i++){
+		owSt_type res = ow_searchRom(&searchRomContext);
+		if(res == owSearchOk || res == owSearchLast){
+			memcpy(ds18b20data[i].rom, searchRomContext.rom, sizeof(ds18b20data[i].rom));
+			ds18b20data[i].state = temp_presence;
 		}
-		else{
-			if(errorcnt < DS18_MAX_ERROR){
-				errorcnt++;
-			}else{
-				temperature.state = temp_NoInit;
-			}
-			vTaskDelay(pdMS_TO_TICKS(1000));
+		if(res == owSearchLast){
+			break;
 		}
 	}
 
 	while(1){
-		uint8_t bff[9];
+		for(uint8_t i = 0; i < DS18_MAX_SENSORS; i++){
+			// DS18B20 INIT
+			while(ds18b20data[i].state == temp_presence || ds18b20data[i].state == temp_errSensor){
+				ds18b20state_type resInit = ds18b20Init(ds18b20data[i].rom);
+				if(resInit == ds18b20st_ok){
+					ds18b20data[i].state = temp_init;
+					ds18b20data[i].errorcnt = 0;
+					break;
+				}
+				else{
+					if(errorcnt > DS18_MAX_ERROR){
+						ds18b20data[i].errorcnt++;
+					}else{
+						ds18b20data[i].state = temp_errSensor;
+					}
+				}
+			}
+		}
 
-		owSt_type st =  ow_reset();
-		bff[0] = SKIP_ROM;
-		ow_write(bff, 1);
-		bff[0] = CONVERT_T;
-		ow_write(bff, 1);
-
-		ow_setOutHi();
-		memset(bff, 0, 9);
+		ds18b20ConvertTemp(NULL); // Send to all sensors
 		vTaskDelay(pdMS_TO_TICKS(1000));
 
-		ow_setOutOpenDrain();
-		st = ow_reset();
-		if(st != owOk)
-			goto error;
-
-		bff[0] = SKIP_ROM;
-		st = ow_write(bff, 1);
-		if(st != owOk)
-			goto error;
-
-		bff[0] = READ_SCRATCHPAD;
-		st = ow_write(bff, 1);
-		if(st != owOk)
-			goto error;
-
-		st = ow_read(bff, 9);
-		if(st != owOk)
-			goto error;
-
-		uint8_t crc = crc8Calc(&crc1Wire, bff, 9);
-		if(crc != 0)
-			goto error;
-
-		int16_t scratchpad = bff[1];
-		scratchpad <<= 8;
-		scratchpad |= bff[0];
-		temperature.temperature = (scratchpad * 10 + (16/2)) / 16; //Division with rounding
-		temperature.state = temp_Ok;
-		errorcnt = 0;
-
-	continue;
-
-	error:
-			if(errorcnt < DS18_MAX_ERROR){
-				errorcnt++;
-			}else{
-				temperature.state = temp_ErrSensor;
+		for(uint8_t i = 0; i < DS18_MAX_SENSORS; i++){
+			if(ds18b20data[i].state == temp_init || ds18b20data[i].state == temp_ok){
+				uint8_t scratchpad[9];
+				ds18b20state_type res = ds18b20ReadScratchpad(ds18b20data[i].rom, scratchpad);
+				if(res != ds18b20st_ok)
+					goto error;
+				ds18b20data[i].temperature = ds18b20Reg2tmpr(scratchpad[0], scratchpad[1]);
+				ds18b20data[i].state = temp_ok;
+				ds18b20data[i].errorcnt = 0;
 			}
+			continue;
+
+			error:
+				if(ds18b20data[i].errorcnt < DS18_MAX_ERROR){
+					ds18b20data[i].errorcnt++;
+				}else{
+					ds18b20data[i].state = temp_errSensor;
+				}
+		}
 	}
 }
 

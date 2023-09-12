@@ -1,8 +1,8 @@
 ﻿/*!****************************************************************************
  * @file		ds18b20.h
  * @author		Storozhenko Roman - D_EL
- * @version		V2.1
- * @date		30.03.2014
+ * @version		V2.2
+ * @date		03.11.2022
  * @copyright	The MIT License (MIT). Copyright (c) 2020 Storozhenko Roman
  */
 #ifndef ds18b20_H
@@ -21,13 +21,8 @@ extern "C" {
 /*!****************************************************************************
 * User define
 */
-//ROM COMMANDS Definition
-#define SEARCH_ROM			0xF0
-#define MATCH_ROM			0x55
+#define DS18B20_FAMILY_CODE	0x28
 #define READ_SCRATCHPAD		0xBE
-#define READ_ROM			0x33
-#define SKIP_ROM			0xCC
-#define ALARM_SEARCH		0xEC
 #define CONVERT_T			0x44
 #define WRITE_SCRATCHPAD	0x4E
 #define COPY_SCRATCHPAD		0x48
@@ -50,19 +45,20 @@ typedef enum{
 	ds18b20st_NotFound = owNotFound,
 	ds18b20st_ShortCircle = owShortCircle,
 	ds18b20st_wTimeOut = owTimeOut,
+	ds18b20st_errorCrc = owCrcError,
 	ds18b20st_SearchLast = owSearchLast,
-	ds18b20st_SearchFinished = owSearchFinished,
 	ds18b20st_SearchError = owSearchError,
 	ds18b20st_UartTimeout = owUartTimeout,
-	ds18b20st_errorCrc,
 	ds18b20st_notDs18b20
 }ds18b20state_type;
 
 /*!****************************************************************************
 * Prototypes for the functions
 */
-ds18b20state_type ds18b20Init(void);
-uint16_t reg2tmpr(uint8_t rl, uint8_t rh);
+ds18b20state_type ds18b20Init(const uint8_t rom[8]);
+ds18b20state_type ds18b20ReadScratchpad(const uint8_t rom[8], uint8_t scratchpad[9]);
+ds18b20state_type ds18b20ConvertTemp(const uint8_t rom[8]);
+uint16_t ds18b20Reg2tmpr(uint8_t rl, uint8_t rh);
 
 #ifdef __cplusplus
 }

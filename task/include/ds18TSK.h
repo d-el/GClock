@@ -22,7 +22,7 @@ extern "C" {
 * User define
 */
 #define DS18_MAX_ERROR		(3)	//Maximum error before set error state
-
+#define DS18_MAX_SENSORS	(3)
 /*!****************************************************************************
 * User enum
 */
@@ -31,20 +31,24 @@ extern "C" {
 * User typedef
 */
 typedef enum{
-	temp_Ok,
-	temp_NoInit,
-	temp_ErrSensor
+	temp_ok,
+	temp_noInit,
+	temp_presence,
+	temp_init,
+	temp_errSensor
 }temperatureState_type;
 
 typedef struct{
-	temperatureState_type	state;
-	int16_t					temperature;	//[X_X °C]
-}temperature_type;
+	uint8_t errorcnt;
+	temperatureState_type state;
+	int16_t temperature;			//[X_X °C]
+	uint8_t rom[8];
+}ds18b20data_type;
 
 /*!****************************************************************************
 * External variables
 */
-extern temperature_type   temperature;
+extern ds18b20data_type ds18b20data[DS18_MAX_SENSORS];
 
 /*!****************************************************************************
 * Macro functions

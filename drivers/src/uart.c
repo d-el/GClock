@@ -69,7 +69,7 @@ void uart_init(uart_type *uartx, uint32_t baudRate){
 		/************************************************
 		 * IO
 		 */
-		gppin_init(GPIOB, 6, alternateFunctionOpenDrain, pullDisable, 0, UART1_PINAFTX);			//USART1_TX
+		gppin_init(GPIOB, 6, alternateFunctionPushPull, pullDisable, 0, UART1_PINAFTX);			//USART1_TX
 		#if(UART1_HALFDUPLEX == 0)
 		gppin_init(GPIOB, 7, alternateFunctionPushPull, pullUp, 0, UART1_PINAFRX);				//USART1_RX
 		#else
@@ -118,12 +118,12 @@ void uart_init(uart_type *uartx, uint32_t baudRate){
 		uartx->dmaIfcrMaskTx	= DMA_IFCR_CTCIF4;
 		uartx->dmaIfcrMaskRx	= DMA_IFCR_CTCIF5;
 		uartx->frequency		= APB1_FREQ;
-		uartx->driverEnable		= UART1_DRIVER_ENABLE;
+		uartx->driverEnable		= UART2_DRIVER_ENABLE;
 
 		/************************************************
 		 * IO
 		 */
-		gppin_init(GPIOA, 2, alternateFunctionOpenDrain, pullDisable, 0, UART2_PINAFTX);
+		gppin_init(GPIOA, 2, alternateFunctionPushPull, pullDisable, 0, UART2_PINAFTX);
 		#if(UART2_HALFDUPLEX == 0)
 		gppin_init(GPIOA, 3, alternateFunctionPushPull, pullUp, 0, UART2_PINAFRX);
 		#else
@@ -152,7 +152,58 @@ void uart_init(uart_type *uartx, uint32_t baudRate){
 		DMAMUX1_Channel3->CCR = 53 << DMAMUX_CxCR_DMAREQ_ID_Pos; // USART2_TX
 		DMAMUX1_Channel4->CCR = 52 << DMAMUX_CxCR_DMAREQ_ID_Pos; // USART2_RX
 	}
-		#endif //UART2_USE
+	#endif //UART2_USE
+
+	#if(UART3_USE > 0)
+	if(uartx == uart3){
+		/************************************************
+		 * Memory setting
+		 */
+		uartx->pUart			= USART3;
+		uartx->pTxBff			= uart3TxBff;
+		uartx->pRxBff			= uart3RxBff;
+		uartx->pUartTxDmaCh		= DMA1_Channel6;
+		uartx->pUartRxDmaCh		= DMA1_Channel7;
+		uartx->dmaIfcrTx		= &DMA1->IFCR;
+		uartx->dmaIfcrRx		= &DMA1->IFCR;
+		uartx->dmaIfcrMaskTx	= DMA_IFCR_CTCIF6;
+		uartx->dmaIfcrMaskRx	= DMA_IFCR_CTCIF7;
+		uartx->frequency		= APB1_FREQ;
+		uartx->driverEnable		= UART3_DRIVER_ENABLE;
+
+		/************************************************
+		 * IO
+		 */
+		gppin_init(GPIOB, 8, alternateFunctionOpenDrain, pullDisable, 0, UART3_PINAFTX);
+		#if(UART3_HALFDUPLEX == 0)
+		gppin_init(GPIOB, 9, alternateFunctionPushPull, pullUp, 0, UART3_PINAFRX);
+		#else
+		uartx->halfDuplex = 1;
+		#endif
+
+		/************************************************
+		 * NVIC
+		 */
+		NVIC_EnableIRQ(USART3_4_IRQn);
+		NVIC_SetPriority(USART3_4_IRQn, UART3_TXIRQPrior);
+
+		/************************************************
+		 * USART clock
+		 */
+		RCC->APBENR1 |= RCC_APBENR1_USART3EN;
+		RCC->APBRSTR1 |= RCC_APBRSTR1_USART3RST;
+		RCC->APBRSTR1 &= ~RCC_APBRSTR1_USART3RST;
+
+		/************************************************
+		 * DMA clock
+		 */
+		RCC->AHBENR |= RCC_AHBENR_DMA1EN;
+
+		// DMAMUX
+		DMAMUX1_Channel5->CCR = 55 << DMAMUX_CxCR_DMAREQ_ID_Pos; // USART3_TX
+		DMAMUX1_Channel6->CCR = 54 << DMAMUX_CxCR_DMAREQ_ID_Pos; // USART3_RX
+	}
+	#endif //UART3_USE
 
 	/************************************************
 	 * USART
@@ -255,7 +306,6 @@ void uart_write(uart_type *uartx, const void *src, uint16_t len){
  * @brief
  */
 void uart_read(uart_type *uartx, void *dst, uint16_t len){
-	uartx->pUart->ICR = 0xFFFFFFFFU;												//Clear all flags
 	uartx->pUart->RQR = USART_RQR_RXFRQ;
 	uartx->pUartRxDmaCh->CCR &= ~DMA_CCR_EN;									//Channel disabled
 	uartx->pUartRxDmaCh->CMAR = (uint32_t) dst;									//Memory address
@@ -310,19 +360,6 @@ void USART_IRQHandler(uart_type *uartx){
 }
 
 /******************************************************************************
- * Transfer complete interrupt (USART RX)
- */
-void DmaStreamRxIRQHandler(uart_type *uartx){
-	uartx->pUartRxDmaCh->CCR &= ~DMA_CCR_EN;											//Channel disabled
-	uartx->rxCnt++;
-	uartx->rxState = uartRxSuccess;
-	if(uartx->rxHoock != NULL){
-		uartx->rxHoock(uartx);
-	}
-	*uartx->dmaIfcrRx = uartx->dmaIfcrMaskRx;											//Clear flag
-}
-
-/******************************************************************************
  * Transfer complete interrupt USART1_IRQn (USART1 TX and IDLE RX)
  */
 #if (UART1_USE > 0)
@@ -339,5 +376,14 @@ void USART2_IRQHandler(void){
 	USART_IRQHandler(uart2);
 }
 #endif //UART2_USE
+
+/******************************************************************************
+ * Transfer complete interrupt USART3_IRQn (USART3 TX and IDLE RX)
+ */
+#if (UART3_USE > 0)
+void USART3_4_IRQHandler(void){
+	USART_IRQHandler(uart3);
+}
+#endif //UART3_USE
 
 /******************************** END OF FILE ********************************/

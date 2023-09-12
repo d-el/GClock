@@ -14,9 +14,11 @@
 class Datecs{
 public:
 	using Interface = void(*)(const void* c, size_t len);
+private:
+	Datecs();
 public:
-	Datecs() = delete;
-	Datecs(Interface i);
+	static Datecs& get();
+	void setInterface(Interface i);
 	void init();
 	void brightness(uint8_t level);	// n = 1, Brightness Level = 40 %
 									// n = 2, Brightness Level = 60 %
@@ -24,6 +26,7 @@ public:
 									// n = 4, Brightness Level = 100 %
 	void clear();
 	void putstring(uint8_t x, uint8_t y, const char* s);
+	void turnAnnunciator(bool on, int8_t x); // x 0 to 19
 	void flush();
 
 private:

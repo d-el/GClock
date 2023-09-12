@@ -22,7 +22,7 @@
 static plog_vprintf_type log_vsprintf;
 static plog_write_type log_write;
 static plog_timestamp_type log_timestamp;
-static char log_buf[1024];
+static char log_buf[1500];
 static int log_fd;
 
 /*!****************************************************************************

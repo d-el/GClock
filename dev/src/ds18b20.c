@@ -1,65 +1,110 @@
 ﻿/*!****************************************************************************
  * @file		ds18b20.c
  * @author		Storozhenko Roman - D_EL
- * @version		V2.1
- * @date		30.03.2014
+ * @version		V2.2
+ * @date		03.11.2022
  * @copyright	The MIT License (MIT). Copyright (c) 2020 Storozhenko Roman
  */
 
 /*!****************************************************************************
 * Include
 */
+#include <stddef.h>
 #include "gpio.h"
 #include "crc.h"
 #include "ds18b20.h"
 
 /*!****************************************************************************
 * @brief	Init ds18b20
+* @param	rom - slave ID or NULL for skip rom
 */
-ds18b20state_type ds18b20Init(void){
-	uint8_t buff[8];
-	uint8_t crc = 0;
-
+ds18b20state_type ds18b20Init(const uint8_t rom[8]){
 	owSt_type result = ow_reset();
 	if(result != 0){
 		return (ds18b20state_type)result;
 	}
-	buff[0] = READ_ROM;
-	result = ow_write(buff, 1);
+
+	if(rom == NULL){
+		uint8_t readRom[8];
+		result = ow_readRom(readRom);
+		if(result != 0){
+			return (ds18b20state_type)result;
+		}
+		if(readRom[0] != DS18B20_FAMILY_CODE){
+			return ds18b20st_notDs18b20;
+		}
+	}
+
+	result = ow_selectRom(rom);
 	if(result != owOk){
 		return (ds18b20state_type)result;
 	}
 
-	result = ow_read(buff, 8);
+	uint8_t buff[4];
+	buff[0] = WRITE_SCRATCHPAD;
+	buff[1] = 127;				//TH
+	buff[2] = 0;				//TL
+	buff[3] = 0x7F;				//12bit 750ms	0.0625
+	result = ow_write(buff, sizeof(buff));
 	if(result != owOk){
 		return (ds18b20state_type)result;
 	}
 
-	crc = crc8Calc(&crc1Wire, buff, 8);
+	return ds18b20st_ok;
+}
+
+/*!****************************************************************************
+* @brief	Read the contents of the scratchpad
+* @param	rom - slave ID or NULL for skip rom
+* @param	scratchpad - save to
+*/
+ds18b20state_type ds18b20ReadScratchpad(const uint8_t rom[8], uint8_t scratchpad[9]){
+	owSt_type result = ow_reset();
+	if(result != 0){
+		return (ds18b20state_type)result;
+	}
+	result = ow_selectRom(rom);
+	if(result != owOk){
+		return (ds18b20state_type)result;
+	}
+
+	const uint8_t functionCommand = READ_SCRATCHPAD;
+	result = ow_write(&functionCommand, 1);
+	if(result != owOk){
+		return (ds18b20state_type)result;
+	}
+
+	result = ow_read(scratchpad, 9);
+	if(result != owOk){
+		return (ds18b20state_type)result;
+	}
+
+	uint8_t crc = crc8Calc(&crc1Wire, scratchpad, 9);
 	if(crc != 0){
 		return ds18b20st_errorCrc;
 	}
+	return ds18b20st_ok;
+}
 
-	if(buff[0] != 0x28){
-		return ds18b20st_notDs18b20;
-	}
-
-	//Set TH, TL, Resolution
-	buff[0] = SKIP_ROM;
-	buff[1] = WRITE_SCRATCHPAD;
-	buff[2] = 127;				//TH
-	buff[3] = 0;				//TL
-	buff[4] = 0x7F;				//12bit 750ms	0.0625
-	result = ow_reset();
+/*!****************************************************************************
+* @brief	Initiates a single temperature conversion
+* @param	rom - slave ID or NULL for skip rom
+*/
+ds18b20state_type ds18b20ConvertTemp(const uint8_t rom[8]){
+	owSt_type result = ow_reset();
 	if(result != 0){
 		return (ds18b20state_type)result;
 	}
-
-	result = ow_write(buff, 5);
-	if(result != 0){
+	result = ow_selectRom(rom);
+	if(result != owOk){
 		return (ds18b20state_type)result;
 	}
 
+	const uint8_t functionCommand = CONVERT_T;
+	result = ow_write(&functionCommand, 1);
+	if(result != owOk){
+		return (ds18b20state_type)result;
+	}
 	return ds18b20st_ok;
 }
 
@@ -68,13 +113,13 @@ ds18b20state_type ds18b20Init(void){
 * @param	rh - hight temperature register
 * @retval	temperature X_XX
 */
-uint16_t reg2tmpr(uint8_t rl, uint8_t rh){
+uint16_t ds18b20Reg2tmpr(uint8_t rl, uint8_t rh){
 	union{
 		struct{
 			uint8_t		rl;
 			uint8_t		rh;
 		}byte;
-		uint16_t	word;
+		int16_t	word;
 	}scratchpad;
 
 	scratchpad.byte.rl = rl;

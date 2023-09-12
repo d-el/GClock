@@ -9,4 +9,4 @@ target_include_directories(task PUBLIC
 	include
 	)
 target_compile_options(task PUBLIC -Wno-missing-field-initializers)
-target_link_libraries(task freertos utils drivers dev systems prmsystem math minmea)
+target_link_libraries(task freertos utils drivers dev systems prmsystem math minmea window)

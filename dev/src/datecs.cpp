@@ -1,5 +1,5 @@
 /*!****************************************************************************
- * @file		ds18b20.h
+ * @file		datecs.cpp
  * @author		Storozhenko Roman - D_EL
  * @version		V1.0
  * @date		09.04.2022
@@ -9,9 +9,18 @@
 #include "datecs.h"
 #include <string.h>
 
-Datecs::Datecs(Interface i){
+Datecs& Datecs::get(){
+	static Datecs d;
+	return d;
+}
+
+void Datecs::setInterface(Interface i){
 	interface = i;
+}
+
+Datecs::Datecs(){
 	memset(frame, ' ', sizeof(frame));
+	interface = nullptr;
 }
 
 void Datecs::init(){
@@ -55,10 +64,22 @@ void Datecs::clear(){
 }
 
 void Datecs::putstring(uint8_t x, uint8_t y, const char* s){
-	char* p = &frame[y][x];
-	while(*s) *p++ = *s++;
+	while(*s){
+		frame[y][x] = *s++;
+		x++;
+		if(x > 19){
+			break;
+		}
+	}
+}
+
+void Datecs::turnAnnunciator(bool on, int8_t x){
+	const uint8_t bff[] = { 0x1F, 0x23, on ? uint8_t(1) : uint8_t(0), uint8_t(x + 1) };
+	interface(bff, sizeof(bff));
 }
 
 void Datecs::flush(){
+	const uint8_t bff[] = { 0x1B, 0x48, 0 }; // Set cursor to 0
+	interface(bff, sizeof(bff));
 	interface(frame, sizeof(frame));
 }

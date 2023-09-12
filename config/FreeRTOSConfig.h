@@ -20,8 +20,8 @@
 #define configUSE_TICKLESS_IDLE                 ( 0 )
 #define configCPU_CLOCK_HZ                      ( 64000000 )
 #define configTICK_RATE_HZ                      ( 1000 )
-#define configMAX_PRIORITIES                    ( 4 )
-#define configMINIMAL_STACK_SIZE                ( 64 )
+#define configMAX_PRIORITIES                    ( 5 )
+#define configMINIMAL_STACK_SIZE                ( 512 )
 #define configMAX_TASK_NAME_LEN                 ( 8 )
 #define configUSE_16_BIT_TICKS                  ( 0 )
 #define configIDLE_SHOULD_YIELD                 ( 1 )
@@ -40,7 +40,7 @@
 /* Memory allocation related definitions. */
 #define configSUPPORT_STATIC_ALLOCATION         ( 0 )
 #define configSUPPORT_DYNAMIC_ALLOCATION        ( 1 )
-#define configTOTAL_HEAP_SIZE                   ( 4 * 1024 )
+#define configTOTAL_HEAP_SIZE                   ( 16 * 1024 )
 #define configAPPLICATION_ALLOCATED_HEAP        ( 0 )
 
 /* Hook function related definitions. */
@@ -105,13 +105,16 @@ See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 #define INCLUDE_xTaskResumeFromISR              ( 0 )
 
 /*-------NAME--------------------size [4 byte Word] */
-#define SYSTEM_TSK_SZ_STACK     420
-#define ADC_TSK_SZ_STACK        160
-#define DS18B_TSK_SZ_STACK      140
+#define SYSTEM_TSK_SZ_STACK     512
+#define ADC_TSK_SZ_STACK        512
+#define DS18B_TSK_SZ_STACK      512
+#define WINDOW_TSK_SZ_STACK     512
+
 /*-------NAME--------------------*/
-#define SYSTEM_TSK_PRIO         2
-#define ADC_TSK_PRIO            3
-#define DS18B_TSK_PRIO          1
+#define SYSTEM_TSK_PRIO         3
+#define ADC_TSK_PRIO            4
+#define DS18B_TSK_PRIO          2
+#define WINDOW_TSK_PRIO         1
 
 /* A header file that defines trace macro can be included here. */
 

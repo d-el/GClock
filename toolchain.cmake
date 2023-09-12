@@ -17,6 +17,6 @@ set(CPUFLAGS "-mcpu=cortex-m0plus -mthumb -mfloat-abi=soft")
 set(CMAKE_CXX_FLAGS ${CPUFLAGS} CACHE INTERNAL "")
 set(CMAKE_C_FLAGS ${CPUFLAGS} CACHE INTERNAL "")
 
-set(CMAKE_EXE_LINKER_FLAGS "-T ${CMAKE_CURRENT_SOURCE_DIR}/systems/STM32G030F6Px_FLASH.ld -Wl,--gc-sections --specs=nano.specs"
+set(CMAKE_EXE_LINKER_FLAGS "-T ${CMAKE_CURRENT_SOURCE_DIR}/systems/STM32G070KBTx_FLASH.ld -Wl,--gc-sections --specs=nano.specs"
 	CACHE INTERNAL ""
 	)

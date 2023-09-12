@@ -21,7 +21,8 @@
 */
 pinMode_type const pinsMode[] = {
 	/*0 */	makepin(GPIOC,	15,		outPushPull,				pullDisable,	1,	0),	// LED
-	/*1 */	makepin(GPIOB,	6,		alternateFunctionOpenDrain,	pullDisable,	1,	0),	//DS18B20
+	/*1 */	makepin(GPIOB,	8,		alternateFunctionOpenDrain,	pullDisable,	1,	4),	// DS18B20
+	/*2 */	makepin(GPIOB,	2,		digitalInput,				pullUp,			1,	0),	// PB1
 };
 static const uint32_t pinNum = sizeof(pinsMode) / sizeof(pinMode_type);
 
@@ -35,6 +36,8 @@ void irqSetCallback(gpioCallback_type callback){
 * InitAllGpio
 */
 void gpio_init(void){
+	SYSCFG->CFGR1 |= SYSCFG_CFGR1_UCPD1_STROBE; // PB15 and PA8 pull-down configuration strobe
+
 	pinMode_type *pgpios;
 	pinMode_type *pgpiosEnd;
 

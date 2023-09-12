@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.6)
 
 PROJECT(GClock
-	VERSION 0.0.1
+	VERSION 0.1.0
 	LANGUAGES CXX C
 	)
 	
@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 11)
 
 add_compile_options(
-	-DSTM32G030xx
+	-DSTM32G070xx
 	)
 
 add_compile_options(
@@ -24,6 +24,7 @@ add_compile_options(
 	-Wuninitialized
 	-Wextra
 	-Wall
+	-fno-common
 
 	$<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>
 	)
@@ -31,6 +32,7 @@ add_compile_options(
 add_link_options(
 	-Wl,--flto
 	-Wl,--gc-sections
+	#-Wl,--print-gc-sections
 	-Wl,--print-memory-usage
 	-Wl,--undefined=uxTopUsedPriority
 	-Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.map
@@ -49,6 +51,7 @@ add_subdirectory(prmsystem)
 add_subdirectory(systems)
 add_subdirectory(task)
 add_subdirectory(utils)
+add_subdirectory(window)
 
 set(SOURCE_FILES
 	main.cpp

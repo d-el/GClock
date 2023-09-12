@@ -10,24 +10,32 @@
 * Include
 */
 #include <assert.h>
-#include <inttypes.h>
-#include <string.h>
 #include <FreeRTOS.h>
 #include <task.h>
 #include <semphr.h>
 #include <adc.h>
 #include "systemTSK.h"
 #include "adcTSK.h"
-#include <movingAverageFilter.h>
 #include <uart.h>
 #include <minmea/minmea.h>
 #include <algorithm>
 #include "ds18TSK.h"
 #include <datecs.h>
 #include "timegm.h"
+#include <mh-z19.h>
+#include <enco.h>
+#include <base.h>
+#include <prmSystem.h>
+#include <plog.h>
+#include <version.h>
 
 #define PIECE_BUF_RX		UART2_RxBffSz
 #define connectUart			uart2
+
+extern "C" int _write(int file, const void *ptr, unsigned int len);
+
+#define LOG_LOCAL_LEVEL P_LOG_INFO
+static const char *logTag = "systemTSK";
 
 /*!****************************************************************************
  * @brief
@@ -36,13 +44,24 @@ void systemTSK(void *pPrm){
 	(void)pPrm;
 
 	static SemaphoreHandle_t connUartTxSem;
-	static SemaphoreHandle_t connUartRxSem;
 	vSemaphoreCreateBinary(connUartTxSem);
 	xSemaphoreTake(connUartTxSem, portMAX_DELAY);
 	assert(connUartTxSem != NULL);
+
+	static SemaphoreHandle_t connUartRxSem;
 	vSemaphoreCreateBinary(connUartRxSem);
 	xSemaphoreTake(connUartRxSem, portMAX_DELAY);
 	assert(connUartRxSem != NULL);
+
+//	static SemaphoreHandle_t displayUartMutex;
+//	displayUartMutex = xSemaphoreCreateMutex();
+//	assert(displayUartMutex != NULL);
+
+	//Init log system
+	plog_setVprintf(vsprintf);
+	plog_setWrite(_write);
+	plog_setTimestamp(xTaskGetTickCount);
+	P_LOGI(logTag, "Version %s", getVersion());
 
 	assert(pdTRUE == xTaskCreate(adcTSK, "adcTSK", ADC_TSK_SZ_STACK, NULL, ADC_TSK_PRIO, NULL));
 	assert(pdTRUE == xTaskCreate(ds18TSK, "ds18TSK", DS18B_TSK_SZ_STACK, NULL, DS18B_TSK_PRIO, NULL));
@@ -79,35 +98,32 @@ void systemTSK(void *pPrm){
 	vTaskDelay(pdMS_TO_TICKS(enableDelay));
 
 	auto dispalayInterface = [](const void* c, size_t len){
+		//xSemaphoreTake(displayUartMutex, portMAX_DELAY);
 		uart_write(connectUart, c, len);
 		xSemaphoreTake(connUartTxSem, pdMS_TO_TICKS(100));
+		//xSemaphoreGive(displayUartMutex);
 	};
-	Datecs display(dispalayInterface);
-	display.init();
+	Datecs::get().setInterface(dispalayInterface);
+	Datecs::get().init();
 
-	// Startup animation
-	for(size_t i = 0; i < 20; i++){
-		display.clear();
-		display.putstring(i, 0, ">");
-		display.putstring(19 - i, 1, "<");
-		display.flush();
-		vTaskDelay(pdMS_TO_TICKS(50));
-	}
-	display.clear();
-	display.putstring(6, 0, "DEL 2022");
-	display.flush();
+	mh_z19_init();
+	enco_init();
+
 	vTaskDelay(pdMS_TO_TICKS(500));
+	assert(pdTRUE == xTaskCreate(baseTSK, "baseTSK", WINDOW_TSK_SZ_STACK, NULL, WINDOW_TSK_SZ_STACK, NULL));
 
+	//xSemaphoreTake(displayUartMutex, portMAX_DELAY);
+	uart_read(connectUart, connectUart->pRxBff, PIECE_BUF_RX);
+	//xSemaphoreGive(displayUartMutex);
 	while(1){
-		display.clear();
-
 		// Read from GPS
-		uart_read(connectUart, connectUart->pRxBff, PIECE_BUF_RX);
-		BaseType_t res = xSemaphoreTake(connUartRxSem, pdMS_TO_TICKS(2000));
+		BaseType_t res = xSemaphoreTake(connUartRxSem, 0);
 		size_t numRx = PIECE_BUF_RX - uartGetRemainRx(connectUart);
 
 		// Parse GPS
 		if((numRx != 0)&&(res == pdTRUE)){
+			uart_read(connectUart, connectUart->pRxBff, PIECE_BUF_RX);
+
 			// Parse NMEA
 			const char *separator = "\n";
 			char *lasts = nullptr;
@@ -117,9 +133,7 @@ void systemTSK(void *pPrm){
 					case MINMEA_SENTENCE_GGA: {
 						struct minmea_sentence_gga frame;
 						if(minmea_parse_gga(&frame, line)){
-							char s[4];
-							snprintf(s, sizeof(s), "S%i", frame.satellites_tracked);
-							display.putstring(17, 0, s);
+							Prm::satellites.val = frame.satellites_tracked;
 						}
 					} break;
 
@@ -135,17 +149,9 @@ void systemTSK(void *pPrm){
 							gpstm.tm_sec = frame.time.seconds;
 							gpstm.tm_isdst = 0;
 							time_t gpsUnixTime = timegm(&gpstm);
-
-							struct tm tm;
-							localtime_r(&gpsUnixTime, &tm);
-							char s[32];
-							snprintf(s, sizeof(s), "%02i:%02i:%02i", tm.tm_hour, tm.tm_min, tm.tm_sec);
-							display.putstring(0, 0, s);
-							snprintf(s, sizeof(s), "%02i:%02i:%02i", tm.tm_mday, tm.tm_mon + 1, tm.tm_year - 100);
-							display.putstring(0, 1, s);
+							Prm::gtime.val = gpsUnixTime;
 						}else{
-							display.putstring(0, 0, "--:--:--");
-							display.putstring(0, 1, "--.--.--");
+
 						}
 					} break;
 					default: ;
@@ -154,32 +160,43 @@ void systemTSK(void *pPrm){
 			}
 		}
 
-		// Show outer temperature
-		char s[16];
-		if(temperature.state == temp_Ok){
-			snprintf(s, sizeof(s), "%+" PRIi16 ".%" PRIu16 "\x7D", temperature.temperature / 10, abs(temperature.temperature) % 10);
-		}else{
-			snprintf(s, sizeof(s), "---\x7D");
+		Prm::co2.val = mh_z19_readCO2();
+		if(Prm::co2setZero.val){
+			mh_z19_abcLogicOn(true);
+			mh_z19_zeroPointCalibration();
+			Prm::co2setZero.val = 0;
+			P_LOGI(logTag, "MH-Z19 send calibration zero point");
 		}
-		display.putstring(10, 0, s);
 
-		snprintf(s, sizeof(s), "\x7E" "%03u", adcTaskStct.filtered.lightSensorValue);
-		display.putstring(10, 1, s);
-
-		// Set display brightness
-		uint8_t displayBrightness = 4;
-		if(adcTaskStct.filtered.lightSensorValue < 100){
-			displayBrightness = 4;
-		}else if(adcTaskStct.filtered.lightSensorValue < 300){
-			displayBrightness = 3;
-		}else if(adcTaskStct.filtered.lightSensorValue < 2000){
-			displayBrightness = 2;
-		}else{
-			displayBrightness = 1;
+		Prm::temp_out_ok.val = ds18b20data[1].state == temp_ok ? 1 : 0;
+		Prm::temp_out.val = ds18b20data[1].temperature;
+		if(ds18b20data[1].state == temp_ok && Prm::gtime.val){
+			if(Prm::temp_out.val >= Prm::temp_out_max.val){
+				Prm::temp_out_max.val = Prm::temp_out.val;
+				Prm::temp_out_max_time.val = Prm::gtime.val;
+			}
+			if(Prm::temp_out.val <= Prm::temp_out_min.val){
+				Prm::temp_out_min.val = Prm::temp_out.val;
+				Prm::temp_out_min_time.val = Prm::gtime.val;
+			}
 		}
-		display.brightness(displayBrightness);
 
-		display.flush();
+		Prm::temp_in_ok.val = ds18b20data[0].state == temp_ok ? 1 : 0;
+		Prm::temp_in.val = ds18b20data[0].temperature;
+		if(ds18b20data[0].state == temp_ok && Prm::gtime.val){
+			if(Prm::temp_in.val >= Prm::temp_in_max.val){
+				Prm::temp_in_max.val = Prm::temp_in.val;
+				Prm::temp_in_max_time.val = Prm::gtime.val;
+			}
+			if(Prm::temp_in.val <= Prm::temp_in_min.val){
+				Prm::temp_in_min.val = Prm::temp_in.val;
+				Prm::temp_in_min_time.val = Prm::gtime.val;
+			}
+		}
+
+		Prm::light = adcTaskStct.filtered.lightSensorValue;
+
+		vTaskDelay(10);
 	}
 }
 

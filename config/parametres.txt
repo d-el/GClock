@@ -1,5 +1,29 @@
 ﻿
+text(temp_minmax_noinit, value,
+	9999: minmax_noinit
+	)
+
 group(Info, public)
 	p(version_major		,""			,uint16_t	,chmodR		,getFwVer		,0	,0x0000	,0			,0			,65535		,0	,0	,0		,notsave)
 	p(version_minor		,""			,uint16_t	,chmodR		,getFwVer		,1	,0x0001	,0			,0			,65535		,0	,0	,0		,notsave)
 	p(version_patch		,""			,uint16_t	,chmodR		,getFwVer		,2	,0x0002	,0			,0			,65535		,0	,0	,0		,notsave)
+	p(int16				,""			,uint16_t	,chmodR		,getFwVer		,2	,0x0003	,0			,0			,65535		,0	,0	,0		,notsave)
+
+group(sensors, public)
+	p(satellites		,""			,uint8_t	,chmodR		,nullptr		,0	,0x0100	,0			,0			,255		,0	,0	,0		,notsave)
+	p(gtime				,""			,uint32_t	,chmodR		,nullptr		,0	,0x0101	,0			,0			,0xFFFFFFFF	,0	,0	,0		,notsave)
+	p(co2				,""			,int16_t	,chmodR		,nullptr		,0	,0x0102	,0			,0			,65535		,0	,0	,0		,notsave)
+	p(co2setZero		,""			,int8_t		,chmodRW	,nullptr		,0	,0x0102	,0			,0			,1			,0	,0	,0		,notsave)
+	p(temp_out_ok		,""			,int8_t		,chmodR		,nullptr		,0	,0x0103	,0			,0			,1			,0	,0	,0		,notsave)
+	p(temp_out			,"°C"		,int16_t	,chmodR		,nullptr		,0	,0x0104	,0			,-3276.8	,3276.7		,0	,0	,1		,notsave)
+	p(temp_out_min		,"°C"		,int16_t	,chmodR		,nullptr		,0	,0x0105	,999.9		,-3276.8	,3276.7		,0	,0	,1		,notsave)
+	p(temp_out_min_time	,""			,uint32_t	,chmodR		,nullptr		,0	,0x0106	,0			,0			,0xFFFFFFFF	,0	,0	,0		,notsave)
+	p(temp_out_max		,"°C"		,int16_t	,chmodR		,nullptr		,0	,0x0107	,-999.9		,-3276.8	,3276.7		,0	,0	,1		,notsave)
+	p(temp_out_max_time	,""			,uint32_t	,chmodR		,nullptr		,0	,0x0108	,0			,0			,0xFFFFFFFF	,0	,0	,0		,notsave)
+	p(temp_in_ok		,""			,int8_t		,chmodR		,nullptr		,0	,0x0109	,0			,0			,1			,0	,0	,0		,notsave)
+	p(temp_in			,"°C"		,int16_t	,chmodR		,nullptr		,0	,0x010A	,0			,-3276.8	,3276.7		,0	,0	,1		,notsave)
+	p(temp_in_min		,"°C"		,int16_t	,chmodR		,nullptr		,0	,0x010B	,999.9		,-3276.8	,3276.7		,0	,0	,1		,notsave)
+	p(temp_in_min_time	,""			,uint32_t	,chmodR		,nullptr		,0	,0x010C	,0			,0			,0xFFFFFFFF	,0	,0	,0		,notsave)
+	p(temp_in_max		,"°C"		,int16_t	,chmodR		,nullptr		,0	,0x010D	,-999.9		,-3276.8	,3276.7		,0	,0	,1		,notsave)
+	p(temp_in_max_time	,""			,uint32_t	,chmodR		,nullptr		,0	,0x010E	,0			,0			,0xFFFFFFFF	,0	,0	,0		,notsave)
+	p(light				,""			,uint16_t	,chmodR		,nullptr		,0	,0x010F	,0			,0			,65535		,0	,0	,0		,notsave)

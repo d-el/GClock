@@ -44,7 +44,7 @@ void adcTSK(void *pPrm){
 	xSemaphoreTake(AdcEndConversionSem, portMAX_DELAY);
 
 	adc_setCallback(adcHoock);
-	adc_setSampleRate(100);
+	adc_setSampleRate(1000);
 	adc_init();
 	adc_startSampling();
 
