@@ -14,7 +14,6 @@
 #include "clock.h"
 #include "uart.h"
 #include "adc.h"
-#include "pwm.h"
 #include "i2c.h"
 #include "flash.h"
 #include "drivers.h"

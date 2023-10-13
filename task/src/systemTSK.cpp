@@ -177,11 +177,11 @@ void systemTSK(void *pPrm){
 		Prm::temp_out_ok.val = ds18b20data[1].state == temp_ok ? 1 : 0;
 		Prm::temp_out.val = ds18b20data[1].temperature;
 		if(ds18b20data[1].state == temp_ok && Prm::gtime.val){
-			if(Prm::temp_out.val >= Prm::temp_out_max.val){
+			if(Prm::temp_out.val > Prm::temp_out_max.val){
 				Prm::temp_out_max.val = Prm::temp_out.val;
 				Prm::temp_out_max_time.val = Prm::gtime.val;
 			}
-			if(Prm::temp_out.val <= Prm::temp_out_min.val){
+			if(Prm::temp_out.val < Prm::temp_out_min.val){
 				Prm::temp_out_min.val = Prm::temp_out.val;
 				Prm::temp_out_min_time.val = Prm::gtime.val;
 			}
@@ -190,11 +190,11 @@ void systemTSK(void *pPrm){
 		Prm::temp_in_ok.val = ds18b20data[0].state == temp_ok ? 1 : 0;
 		Prm::temp_in.val = ds18b20data[0].temperature;
 		if(ds18b20data[0].state == temp_ok && Prm::gtime.val){
-			if(Prm::temp_in.val >= Prm::temp_in_max.val){
+			if(Prm::temp_in.val > Prm::temp_in_max.val){
 				Prm::temp_in_max.val = Prm::temp_in.val;
 				Prm::temp_in_max_time.val = Prm::gtime.val;
 			}
-			if(Prm::temp_in.val <= Prm::temp_in_min.val){
+			if(Prm::temp_in.val < Prm::temp_in_min.val){
 				Prm::temp_in_min.val = Prm::temp_in.val;
 				Prm::temp_in_min_time.val = Prm::gtime.val;
 			}

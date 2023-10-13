@@ -14,7 +14,6 @@
 #include <queue.h>
 #include <semphr.h>
 #include <adc.h>
-#include <pwm.h>
 #include <gpio.h>
 #include "adcTSK.h"
 #include <movingAverageFilter.h>

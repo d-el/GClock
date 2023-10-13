@@ -145,6 +145,17 @@ int16_t central(){
 	}
 }
 
+void makeminmaxstring(char* s, size_t size, int16_t temperature, time_t time){
+	if(abs(temperature) == Prm::mask_temp_minmax_noinit::minmax_noinit){
+		snprintf(s, size, " ---.-\x7D --.-- --:--");
+	}else{
+		int len = snprintf(s, size, "%+" PRIi16 ".%" PRIu16 "\x7D ", temperature / 10, abs(temperature) % 10);
+		struct tm tm;
+		localtime_r(&time, &tm);
+		strftime(&s[7], size - len, "%H:%M %d.%m", &tm);
+	}
+}
+
 int16_t minmaxOuter(){
 	display::get().clear();
 	display::get().turnAnnunciator(true, 9);
@@ -155,28 +166,14 @@ int16_t minmaxOuter(){
 			Prm::temp_out_max.setdef();
 		}
 
-		time_t time = Prm::temp_out_min_time.val;
-		struct tm tm;
-		localtime_r(&time, &tm);
-		char stemperature[16];
-		if(Prm::temp_out_min.val == Prm::mask_temp_minmax_noinit::minmax_noinit){
-			snprintf(stemperature, sizeof(stemperature), "--- \x7D");
-		}else{
-			snprintf(stemperature, sizeof(stemperature), "%+" PRIi16 ".%" PRIu16 "\x7D", Prm::temp_out_min.val / 10, abs(Prm::temp_out_min.val) % 10);
-		}
-		char s[32];
-		snprintf(s, sizeof(s), "Out min %s %02i:%02i", stemperature, tm.tm_hour, tm.tm_min);
-		display::get().putstring(0, 0, s);
+		display::get().putstring(0, 0, "O");
+		display::get().putstring(0, 1, "u");
 
-		time = Prm::temp_out_max_time.val;
-		localtime_r(&time, &tm);
-		if(Prm::temp_out_max.val == -Prm::mask_temp_minmax_noinit::minmax_noinit){
-			snprintf(stemperature, sizeof(stemperature), "--- \x7D");
-		}else{
-			snprintf(stemperature, sizeof(stemperature), "%+" PRIi16 ".%" PRIu16 "\x7D", Prm::temp_out_max.val / 10, abs(Prm::temp_out_max.val) % 10);
-		}
-		snprintf(s, sizeof(s), "    max %s %02i:%02i", stemperature, tm.tm_hour, tm.tm_min);
-		display::get().putstring(0, 1, s);
+		char s[64];
+		makeminmaxstring(s, sizeof(s), Prm::temp_out_max.val, Prm::temp_out_max_time.val);
+		display::get().putstring(1, 0, s);
+		makeminmaxstring(s, sizeof(s), Prm::temp_out_min.val, Prm::temp_out_min_time.val);
+		display::get().putstring(1, 1, s);
 
 		int16_t tick = enco_read();
 		if(tick){
@@ -194,34 +191,22 @@ int16_t minmaxHome(){
 	display::get().clear();
 	display::get().turnAnnunciator(true, 8);
 	TickType_t xLastWakeTime = xTaskGetTickCount();
+
 	while(1){
 		if(keyProc()){
 			Prm::temp_in_min.setdef();
 			Prm::temp_in_max.setdef();
 		}
 
-		time_t time = Prm::temp_out_min_time.val;
-		struct tm tm;
-		localtime_r(&time, &tm);
-		char stemperature[16];
-		if(Prm::temp_in_min.val == Prm::mask_temp_minmax_noinit::minmax_noinit){
-			snprintf(stemperature, sizeof(stemperature), "--- \x7D");
-		}else{
-			snprintf(stemperature, sizeof(stemperature), "%+" PRIi16 ".%" PRIu16 "\x7D", Prm::temp_in_min.val / 10, abs(Prm::temp_in_min.val) % 10);
-		}
-		char s[32];
-		snprintf(s, sizeof(s), "In  min %s %02i:%02i", stemperature, tm.tm_hour, tm.tm_min);
-		display::get().putstring(0, 0, s);
+		display::get().putstring(0, 0, "I");
+		display::get().putstring(0, 1, "n");
 
-		time = Prm::temp_in_max_time.val;
-		localtime_r(&time, &tm);
-		if(Prm::temp_in_max.val == -Prm::mask_temp_minmax_noinit::minmax_noinit){
-			snprintf(stemperature, sizeof(stemperature), "--- \x7D");
-		}else{
-			snprintf(stemperature, sizeof(stemperature), "%+" PRIi16 ".%" PRIu16 "\x7D", Prm::temp_in_max.val / 10, abs(Prm::temp_in_max.val) % 10);
-		}
-		snprintf(s, sizeof(s), "    max %s %02i:%02i", stemperature, tm.tm_hour, tm.tm_min);
-		display::get().putstring(0, 1, s);
+		char s[64];
+		makeminmaxstring(s, sizeof(s), Prm::temp_in_max.val, Prm::temp_in_max_time.val);
+		display::get().putstring(1, 0, s);
+
+		makeminmaxstring(s, sizeof(s), Prm::temp_in_min.val, Prm::temp_in_min_time.val);
+		display::get().putstring(1, 1, s);
 
 		int16_t tick = enco_read();
 		if(tick){
