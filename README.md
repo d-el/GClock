@@ -5,8 +5,11 @@ Clock:
    * display: vacuum fluorescent display datecs, 20x2 characters are provided with a 5 x 7 dot matrix  
    * GPS: UBlox NEO-6M  
    * outdor temperature sensor: DS18B20  
+   * outdor temperature sensor: DS18B20  
+   * HDC1080 humidity sensor  
+   * BME280 humidity and pressure sensor  
 
-<img alt="" src="IMG_5210.HEIC">
+<img alt="" src="photo_2024-01-08_00-46-50.jpg">
 
 ### Requirements
 toolchain arm-none-eabi 10.3 or higher  
