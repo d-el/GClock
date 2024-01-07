@@ -12,9 +12,7 @@
 #include <string.h>
 #include "board.h"
 #include "clock.h"
-#include "uart.h"
-#include "adc.h"
-#include "i2c.h"
+#include "rtc.h"
 #include "flash.h"
 #include "drivers.h"
 
@@ -28,6 +26,7 @@
 void hardInit(void){
 	clock_init();
 	gpio_init();
+	rtc_init();
 }
 
 /******************************** END OF FILE ********************************/

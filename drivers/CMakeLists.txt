@@ -7,6 +7,8 @@ add_library(drivers STATIC
 	src/gpio.c
 	src/i2c.c
 	src/key.c
+	src/rtc.c
+	src/spi.c
 	src/uart.c
 	)
 

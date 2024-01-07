@@ -23,6 +23,7 @@ pinMode_type const pinsMode[] = {
 	/*0 */	makepin(GPIOC,	15,		outPushPull,				pullDisable,	1,	0),	// LED
 	/*1 */	makepin(GPIOB,	8,		alternateFunctionOpenDrain,	pullDisable,	1,	4),	// DS18B20
 	/*2 */	makepin(GPIOB,	2,		digitalInput,				pullUp,			1,	0),	// PB1
+	/*3 */	makepin(GPIOB,	0,		outPushPull,				pullDisable,	0,	0),	// VFD_LS
 };
 static const uint32_t pinNum = sizeof(pinsMode) / sizeof(pinMode_type);
 

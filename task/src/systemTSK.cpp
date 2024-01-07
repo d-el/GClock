@@ -16,21 +16,16 @@
 #include <adc.h>
 #include "systemTSK.h"
 #include "adcTSK.h"
-#include <uart.h>
-#include <minmea/minmea.h>
 #include <algorithm>
 #include "ds18TSK.h"
-#include <datecs.h>
-#include "timegm.h"
-#include <mh-z19.h>
 #include <enco.h>
 #include <base.h>
 #include <prmSystem.h>
 #include <plog.h>
 #include <version.h>
-
-#define PIECE_BUF_RX		UART2_RxBffSz
-#define connectUart			uart2
+#include <display.h>
+#include "sensorTSK.h"
+#include "time.h"
 
 extern "C" int _write(int file, const void *ptr, unsigned int len);
 
@@ -40,22 +35,15 @@ static const char *logTag = "systemTSK";
 /*!****************************************************************************
  * @brief
  */
+
+volatile uint16_t reg = 0xFFFF;
+DMA_TypeDef *dmaisr = DMA1;
+
 void systemTSK(void *pPrm){
 	(void)pPrm;
 
-	static SemaphoreHandle_t connUartTxSem;
-	vSemaphoreCreateBinary(connUartTxSem);
-	xSemaphoreTake(connUartTxSem, portMAX_DELAY);
-	assert(connUartTxSem != NULL);
-
-	static SemaphoreHandle_t connUartRxSem;
-	vSemaphoreCreateBinary(connUartRxSem);
-	xSemaphoreTake(connUartRxSem, portMAX_DELAY);
-	assert(connUartRxSem != NULL);
-
-//	static SemaphoreHandle_t displayUartMutex;
-//	displayUartMutex = xSemaphoreCreateMutex();
-//	assert(displayUartMutex != NULL);
+	disp_init();
+	disp_setColor(black, white);
 
 	//Init log system
 	plog_setVprintf(vsprintf);
@@ -63,8 +51,10 @@ void systemTSK(void *pPrm){
 	plog_setTimestamp(xTaskGetTickCount);
 	P_LOGI(logTag, "Version %s", getVersion());
 
+
 	assert(pdTRUE == xTaskCreate(adcTSK, "adcTSK", ADC_TSK_SZ_STACK, NULL, ADC_TSK_PRIO, NULL));
 	assert(pdTRUE == xTaskCreate(ds18TSK, "ds18TSK", DS18B_TSK_SZ_STACK, NULL, DS18B_TSK_PRIO, NULL));
+	assert(pdTRUE == xTaskCreate(sensorTSK, "sensorTSK", SENSOR_TSK_SZ_STACK, NULL, SENSOR_TSK_PRIO, NULL));
 
 	{	// Set timezone and DST
 		char str[64];
@@ -75,104 +65,13 @@ void systemTSK(void *pPrm){
 		tzset();
 	}
 
-	// uart RX TX callback
-	auto uartRxHook = [](uart_type *puart){
-		(void)puart;
-		BaseType_t xHigherPriorityTaskWoken;
-		xHigherPriorityTaskWoken = pdFALSE;
-		xSemaphoreGiveFromISR(connUartRxSem, &xHigherPriorityTaskWoken);
-		portEND_SWITCHING_ISR(xHigherPriorityTaskWoken);
-	};
-	auto uartTxHook = [](uart_type *puart){
-		(void)puart;
-		BaseType_t xHigherPriorityTaskWoken;
-		xHigherPriorityTaskWoken = pdFALSE;
-		xSemaphoreGiveFromISR(connUartTxSem, &xHigherPriorityTaskWoken);
-		portEND_SWITCHING_ISR(xHigherPriorityTaskWoken);
-	};
-
-	uart_init(connectUart, 9600);
-	uart_setCallback(connectUart, uartTxHook, uartRxHook);
-
-	const uint32_t enableDelay = 2500;
-	vTaskDelay(pdMS_TO_TICKS(enableDelay));
-
-	auto dispalayInterface = [](const void* c, size_t len){
-		//xSemaphoreTake(displayUartMutex, portMAX_DELAY);
-		uart_write(connectUart, c, len);
-		xSemaphoreTake(connUartTxSem, pdMS_TO_TICKS(100));
-		//xSemaphoreGive(displayUartMutex);
-	};
-	Datecs::get().setInterface(dispalayInterface);
-	Datecs::get().init();
-
-	mh_z19_init();
 	enco_init();
 
-	vTaskDelay(pdMS_TO_TICKS(500));
-	assert(pdTRUE == xTaskCreate(baseTSK, "baseTSK", WINDOW_TSK_SZ_STACK, NULL, WINDOW_TSK_SZ_STACK, NULL));
+	//vTaskDelay(pdMS_TO_TICKS(500));
+	assert(pdTRUE == xTaskCreate(baseTSK, "baseTSK", WINDOW_TSK_SZ_STACK, NULL, WINDOW_TSK_PRIO, NULL));
 
-	//xSemaphoreTake(displayUartMutex, portMAX_DELAY);
-	uart_read(connectUart, connectUart->pRxBff, PIECE_BUF_RX);
-	//xSemaphoreGive(displayUartMutex);
 	while(1){
-		// Read from GPS
-		BaseType_t res = xSemaphoreTake(connUartRxSem, 0);
-		size_t numRx = PIECE_BUF_RX - uartGetRemainRx(connectUart);
-
-		// Parse GPS
-		if((numRx != 0)&&(res == pdTRUE)){
-			uart_read(connectUart, connectUart->pRxBff, PIECE_BUF_RX);
-
-			// Parse NMEA
-			const char *separator = "\n";
-			char *lasts = nullptr;
-			char *line = strtok_r((char *)connectUart->pRxBff, separator, &lasts);
-			while(line != nullptr && line[0] == '$'){
-				switch(minmea_sentence_id(line, false)){
-					case MINMEA_SENTENCE_GGA: {
-						struct minmea_sentence_gga frame;
-						if(minmea_parse_gga(&frame, line)){
-							Prm::satellites.val = frame.satellites_tracked;
-							const int32_t newscale = 100000;
-							int32_t nmealat = minmea_rescale(&frame.latitude, newscale);
-							Prm::glatitude.val = (nmealat / (newscale * 100)) * newscale + (nmealat % (newscale * 100)) / 60;
-							int32_t nmealon = minmea_rescale(&frame.longitude, newscale);
-							Prm::glongitude.val = (nmealon / (newscale * 100)) * newscale + (nmealon % (newscale * 100)) / 60;
-							Prm::ghdop.val = minmea_rescale(&frame.hdop, 100);
-						}
-					} break;
-
-					case MINMEA_SENTENCE_RMC: {
-						struct minmea_sentence_rmc frame;
-						if(minmea_parse_rmc(&frame, line) && frame.valid){
-							struct tm gpstm = {};
-							gpstm.tm_year = frame.date.year + 100;
-							gpstm.tm_mon = frame.date.month - 1;
-							gpstm.tm_mday = frame.date.day;
-							gpstm.tm_hour = frame.time.hours;
-							gpstm.tm_min = frame.time.minutes;
-							gpstm.tm_sec = frame.time.seconds;
-							gpstm.tm_isdst = 0;
-							time_t gpsUnixTime = timegm(&gpstm);
-							Prm::gtime.val = gpsUnixTime;
-						}else{
-
-						}
-					} break;
-					default: ;
-				}
-				line = strtok_r(NULL, separator, &lasts);
-			}
-		}
-
-		Prm::co2.val = mh_z19_readCO2();
-		if(Prm::co2setZero.val){
-			mh_z19_abcLogicOn(true);
-			mh_z19_zeroPointCalibration();
-			Prm::co2setZero.val = 0;
-			P_LOGI(logTag, "MH-Z19 send calibration zero point");
-		}
+		Prm::gtime.val = time(NULL);
 
 		Prm::temp_out_ok.val = ds18b20data[1].state == temp_ok ? 1 : 0;
 		Prm::temp_out.val = ds18b20data[1].temperature;
@@ -202,7 +101,7 @@ void systemTSK(void *pPrm){
 
 		Prm::light = adcTaskStct.filtered.lightSensorValue;
 
-		vTaskDelay(10);
+		vTaskDelay(100);
 	}
 }
 

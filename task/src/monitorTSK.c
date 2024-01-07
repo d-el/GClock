@@ -32,7 +32,6 @@
  * ``-Wl,--undefined=uxTopUsedPriority'' when using gcc for final
  * linking) to your LDFLAGS; same with all the other symbols you need.
  */
-__attribute__((used)) extern const int uxTopUsedPriority;
 uint32_t monitorPeriod = pdMS_TO_TICKS(1000);
 #define LOG_LOCAL_LEVEL P_LOG_INFO
 static const char *logTag = "monitorTSK";
@@ -41,7 +40,7 @@ static const char *logTag = "monitorTSK";
  * @brief
  */
 void vConfigureTimerForRunTimeStats(void){
-	sysTimeMeasEnable();
+	//sysTimeMeasEnable();
 }
 
 /*!****************************************************************************
@@ -49,11 +48,11 @@ void vConfigureTimerForRunTimeStats(void){
  */
 unsigned long vGetTimerForRunTimeStats(void){
 	static uint64_t counter = 0;
-	static uint32_t oldcnt = 0;
-	uint32_t cnt = 0 /*sysTimeMeasGetCnt()*/;
+	//static uint32_t oldcnt = 0;
+	//uint32_t cnt = sysTimeMeasGetCnt();
 
-	counter += sysTimeMeasTo_us(cnt - oldcnt);
-	oldcnt = cnt;
+	//counter += sysTimeMeasTo_us(cnt - oldcnt);
+	//oldcnt = cnt;
 
 	// Return time in us
 	return counter;

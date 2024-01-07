@@ -1,9 +1,9 @@
 /*!****************************************************************************
  * @file		prmSystem.cpp
  * @author		d_el - Storozhenko Roman
- * @version		V2.0
- * @date		25.01.2021
- * @copyright	The MIT License (MIT). Copyright (c) 2021 Storozhenko Roman
+ * @version		V2.1
+ * @date		07.01.2024
+ * @copyright	The MIT License (MIT). Copyright (c) 2024 Storozhenko Roman
  * @brief		Parameters system
  */
 
@@ -20,6 +20,7 @@
 
 namespace Prm {
 
+static size_t currentIndex;
 using crc_t = uint16_t;
 constexpr uint16_t magic = 0x2805;
 
@@ -33,6 +34,11 @@ IVal *getbyaddress(uint16_t address){
 		}
 	}
 	return nullptr;
+}
+
+IVal *getNext(){
+	currentIndex++;
+	return valuearray[currentIndex];
 }
 
 size_t getSerialSize(Save save){
@@ -93,10 +99,11 @@ size_t Val<T>::iprintval(char *string, size_t size, uint8_t power, int32_t var) 
 	if(power == 0){
 		return snprintf(string, size, "%" PRIi32, var);
 	}else{
-		int32_t a = var / pows[power];
-		if(var < 0) var = -var;
+		bool minus = false;
+		if(var < 0) var = -var, minus = true;
+		uint32_t a = var / pows[power];
 		uint32_t b = var % pows[power];
-		return snprintf(string, size, "%" PRIi32 ".%0*" PRIu32, a, power, b);
+		return snprintf(string, size, "%s%" PRIi32 ".%0*" PRIu32, minus ? "-" : "", a, power, b);
 	}
 }
 

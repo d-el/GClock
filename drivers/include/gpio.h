@@ -99,6 +99,7 @@ typedef enum{
 	GP_LED,
 	GP_DS18B20,
 	GP_PB1,
+	GP_VFD_LS,
 GP_NOT_USED
 }GPnum_type;
 

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.6)
 
 PROJECT(GClock
-	VERSION 0.1.2
+	VERSION 0.2.0
 	LANGUAGES CXX C
 	)
 	
@@ -25,7 +25,7 @@ add_compile_options(
 	-Wextra
 	-Wall
 	-fno-common
-
+	$<$<COMPILE_LANGUAGE:CXX>:-fconcepts-ts>
 	$<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>
 	)
 
@@ -43,6 +43,7 @@ configure_file(utils/include/version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/utils/incl
 add_subdirectory(config)
 add_subdirectory(dev)
 add_subdirectory(drivers)
+add_subdirectory(lib/bme280)
 add_subdirectory(lib/CMSIS)
 add_subdirectory(lib/freertos)
 add_subdirectory(lib/minmea)

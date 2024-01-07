@@ -5,6 +5,7 @@ add_library(freertos STATIC
 	src/list.c
 	src/port.c
 	src/queue.c
+	src/stream_buffer.c
 	src/tasks.c
 	src/timers.c
 	)
