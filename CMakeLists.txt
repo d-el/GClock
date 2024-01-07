@@ -24,9 +24,8 @@ add_compile_options(
 	-Wuninitialized
 	-Wextra
 	-Wall
-	-fconcepts-ts
 	-fno-common
-
+	$<$<COMPILE_LANGUAGE:CXX>:-fconcepts-ts>
 	$<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>
 	)
 

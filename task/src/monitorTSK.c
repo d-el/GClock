@@ -40,7 +40,7 @@ static const char *logTag = "monitorTSK";
  * @brief
  */
 void vConfigureTimerForRunTimeStats(void){
-	sysTimeMeasEnable();
+	//sysTimeMeasEnable();
 }
 
 /*!****************************************************************************
@@ -48,11 +48,11 @@ void vConfigureTimerForRunTimeStats(void){
  */
 unsigned long vGetTimerForRunTimeStats(void){
 	static uint64_t counter = 0;
-	static uint32_t oldcnt = 0;
-	uint32_t cnt = 0 /*sysTimeMeasGetCnt()*/;
+	//static uint32_t oldcnt = 0;
+	//uint32_t cnt = sysTimeMeasGetCnt();
 
-	counter += sysTimeMeasTo_us(cnt - oldcnt);
-	oldcnt = cnt;
+	//counter += sysTimeMeasTo_us(cnt - oldcnt);
+	//oldcnt = cnt;
 
 	// Return time in us
 	return counter;
