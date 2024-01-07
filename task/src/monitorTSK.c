@@ -32,7 +32,6 @@
  * ``-Wl,--undefined=uxTopUsedPriority'' when using gcc for final
  * linking) to your LDFLAGS; same with all the other symbols you need.
  */
-__attribute__((used)) extern const int uxTopUsedPriority;
 uint32_t monitorPeriod = pdMS_TO_TICKS(1000);
 #define LOG_LOCAL_LEVEL P_LOG_INFO
 static const char *logTag = "monitorTSK";

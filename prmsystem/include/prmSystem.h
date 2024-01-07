@@ -1,9 +1,9 @@
 /*!****************************************************************************
  * @file		prmSystem.h
  * @author		d_el - Storozhenko Roman
- * @version		V2.0
- * @date		25.01.2021
- * @copyright	The MIT License (MIT). Copyright (c) 2021 Storozhenko Roman
+ * @version		V2.1
+ * @date		07.01.2024
+ * @copyright	The MIT License (MIT). Copyright (c) 2024 Storozhenko Roman
  * @brief		Parameters system
  */
 #ifndef PRMSYSTEM_H
@@ -33,29 +33,29 @@ enum Save: uint8_t{
 
 class IText{
 public:
-    virtual const char* get(int i) const = 0;
+	virtual const char* get(int i) const = 0;
 };
 
 template<size_t n>
 class Text: public IText
 {
 public:
-    template <typename... Types>
-    constexpr Text(Types... ts) : textvalues{ { ts... } } {}
+	template <typename... Types>
+	constexpr Text(Types... ts) : textvalues{ { ts... } } {}
 
-    const char* get(int i) const {
-        for(auto &t : textvalues){
-            if(t.v == i) return t.t;
-        }
-        return nullptr;
-    }
+	const char* get(int i) const {
+		for(auto &t : textvalues){
+			if(t.v == i) return t.t;
+		}
+		return nullptr;
+	}
 
 private:
-    struct TextVal{
-        int v;
-        const char *t;
-    };
-    const std::array<TextVal, n> textvalues;
+	struct TextVal{
+		int v;
+		const char *t;
+	};
+	const std::array<TextVal, n> textvalues;
 };
 
 template <class T> class Val;
@@ -219,6 +219,7 @@ private:
 };
 
 IVal *getbyaddress(uint16_t address);
+IVal *getNext();
 size_t getSerialSize(Save save);
 bool serialize(Save save, uint8_t *dst);
 bool deserialize(Save save, const uint8_t *src, size_t size);

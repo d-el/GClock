@@ -27,7 +27,7 @@ adcStct_type adcStct = {
 void adc_init(void){
 	adcStct.adc = ADC1;
 	adcStct.com = ADC1_COMMON;
-	adcStct.tim = TIM3;
+	adcStct.tim = TIM6;
 
 	/**********************************
 	 * IO
@@ -51,7 +51,7 @@ void adc_init(void){
 	for(int i = 0; i < 360000; i++) __NOP();
 
 	ADC1->CFGR1 |= ADC_CFGR1_EXTEN_0;			// Hardware trigger detection on the rising edge
-	ADC1->CFGR1 |= 3 << ADC_CFGR1_EXTSEL_Pos;	// External triggers TIM3_TRGO
+	ADC1->CFGR1 |= 5 << ADC_CFGR1_EXTSEL_Pos;	// External triggers TIM6_TRGO
 
 	ADC1->CFGR1 |= ADC_CFGR1_DMACFG;			// DMA circular mode selected
 
@@ -110,13 +110,13 @@ void adc_init(void){
 	/**********************************
 	 * TIM Init
 	 */
-	RCC->APBENR1	|= RCC_APBENR1_TIM3EN;				// Enable clock
-	RCC->APBRSTR1	|= RCC_APBRSTR1_TIM3RST;			// Timer reset
-	RCC->APBRSTR1	&= ~RCC_APBRSTR1_TIM3RST;
-	TIM3->PSC		= ADC_TIM_FREQUENCY / 1000000 - 1;	// Set prescaler
-	TIM3->CR1		|= TIM_CR1_ARPE;					// TIMx_ARR register is buffered
-	TIM3->CR2		|= TIM_CR2_MMS_1; 					// Update event is selected as trigger output (TRGO)
-	TIM3->ARR		= adcStct.sampleRate;				// SampleRate, [us]
+	RCC->APBENR1	|= RCC_APBENR1_TIM6EN;				// Enable clock
+	RCC->APBRSTR1	|= RCC_APBRSTR1_TIM6RST;			// Timer reset
+	RCC->APBRSTR1	&= ~RCC_APBRSTR1_TIM6RST;
+	adcStct.tim->PSC		= ADC_TIM_FREQUENCY / 1000000 - 1;	// Set prescaler
+	adcStct.tim->CR1		|= TIM_CR1_ARPE;					// TIMx_ARR register is buffered
+	adcStct.tim->CR2		|= TIM_CR2_MMS_1; 					// Update event is selected as trigger output (TRGO)
+	adcStct.tim->ARR		= adcStct.sampleRate;				// SampleRate, [us]
 
 	ADC1->CR |= ADC_CR_ADSTART;
 }
@@ -125,14 +125,14 @@ void adc_init(void){
  *
  */
 void adc_startSampling(void){
-	TIM3->CR1 |= TIM_CR1_CEN;
+	adcStct.tim->CR1 |= TIM_CR1_CEN;
 }
 
 /*!****************************************************************************
  *
  */
 void adc_stopSampling(void){
-	TIM3->CR1 &= ~TIM_CR1_CEN;
+	adcStct.tim->CR1 &= ~TIM_CR1_CEN;
 }
 
 /*!****************************************************************************
@@ -140,7 +140,7 @@ void adc_stopSampling(void){
  */
 void adc_setSampleRate(uint16_t us){
 	adcStct.sampleRate = us;
-	TIM3->ARR = us;
+	adcStct.tim->ARR = us;
 }
 
 /*!****************************************************************************
